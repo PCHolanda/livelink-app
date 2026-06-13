@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { AccessToken } from "npm:livekit-server-sdk"
+import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,24 +33,36 @@ serve(async (req) => {
       )
     }
 
-    // Instantiate LiveKit access token
-    const at = new AccessToken(apiKey, apiSecret, {
-      identity: identity,
-      ttl: '2h', // 2 hour session duration
-    })
-
     const publisher = isPublisher === true || isPublisher === 'true'
 
-    // Configure room permissions
-    at.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: publisher,
-      canSubscribe: true,
-      roomCreate: publisher,
-    })
+    // Create HMAC SHA-256 Key for JWT Signing
+    const encoder = new TextEncoder()
+    const keyData = encoder.encode(apiSecret)
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    )
 
-    const token = await at.toJwt()
+    // Build standard LiveKit Access Token Claims
+    const payload = {
+      iss: apiKey,
+      sub: identity,
+      nbf: getNumericDate(0),
+      exp: getNumericDate(2 * 60 * 60), // Valid for 2 hours
+      video: {
+        room: roomName,
+        roomJoin: true,
+        roomCreate: publisher,
+        canPublish: publisher,
+        canSubscribe: true,
+      }
+    }
+
+    // Sign the token using native Web Crypto API via djwt
+    const token = await create({ alg: "HS256", typ: "JWT" }, payload, key)
 
     return new Response(
       JSON.stringify({ token, url: livekitUrl }),
