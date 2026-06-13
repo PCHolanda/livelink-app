@@ -231,7 +231,7 @@ class _BroadcasterHomeViewState extends State<BroadcasterHomeView> {
           children: [
             // Welcome Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(

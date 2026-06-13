@@ -312,7 +312,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.between,
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
                                                   Text(
                                                     '${index + 1}. ${item['name']}',
@@ -456,7 +456,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Registro de Atividades (Auditoria)',

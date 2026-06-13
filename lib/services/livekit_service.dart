@@ -68,8 +68,8 @@ class LiveKitService extends ChangeNotifier {
 
       if (isPublisher) {
         // Request camera/mic permissions and publish tracks
-        await _room!.localParticipant.setCameraEnabled(true);
-        await _room!.localParticipant.setMicrophoneEnabled(true);
+        await _room?.localParticipant?.setCameraEnabled(true);
+        await _room?.localParticipant?.setMicrophoneEnabled(true);
         _isPublishing = true;
       }
     } catch (e) {
@@ -84,14 +84,14 @@ class LiveKitService extends ChangeNotifier {
 
   Future<void> toggleCamera(bool enabled) async {
     if (_room != null && _isPublishing) {
-      await _room!.localParticipant.setCameraEnabled(enabled);
+      await _room?.localParticipant?.setCameraEnabled(enabled);
       notifyListeners();
     }
   }
 
   Future<void> toggleMicrophone(bool enabled) async {
     if (_room != null && _isPublishing) {
-      await _room!.localParticipant.setMicrophoneEnabled(enabled);
+      await _room?.localParticipant?.setMicrophoneEnabled(enabled);
       notifyListeners();
     }
   }

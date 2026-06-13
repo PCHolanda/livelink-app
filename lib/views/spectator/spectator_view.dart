@@ -240,7 +240,7 @@ class _SpectatorViewState extends State<SpectatorView> {
               Positioned.fill(
                 child: VideoTrackRenderer(
                   remoteVideoTrack,
-                  fit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  fit: VideoViewFit.cover,
                 ),
               )
             else
@@ -259,7 +259,7 @@ class _SpectatorViewState extends State<SpectatorView> {
               left: 16,
               right: 16,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Column(
@@ -271,7 +271,7 @@ class _SpectatorViewState extends State<SpectatorView> {
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            shadows: [Shadow(color: Colors.black80, blurRadius: 6)],
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -282,7 +282,7 @@ class _SpectatorViewState extends State<SpectatorView> {
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
-                            shadows: [Shadow(color: Colors.black80, blurRadius: 6)],
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
                           ),
                         ),
                       ],
@@ -324,7 +324,7 @@ class _SpectatorViewState extends State<SpectatorView> {
                             const Icon(Icons.remove_red_eye_rounded, color: Colors.white70, size: 14),
                             const SizedBox(width: 4),
                             Text(
-                              '${_live!.current_viewers}',
+                              '${_live!.currentViewers}',
                               style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                           ],

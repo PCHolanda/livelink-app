@@ -225,7 +225,7 @@ class _StreamViewState extends State<StreamView> {
     VideoTrack? localVideoTrack;
     if (liveKitService.room != null) {
       final localPart = liveKitService.room!.localParticipant;
-      final pub = localPart.videoTrackPublications.values
+      final pub = localPart?.videoTrackPublications
           .where((p) => p.track is VideoTrack)
           .firstOrNull;
       localVideoTrack = pub?.track as VideoTrack?;
@@ -247,7 +247,7 @@ class _StreamViewState extends State<StreamView> {
                 Positioned.fill(
                   child: VideoTrackRenderer(
                     localVideoTrack,
-                    fit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    fit: VideoViewFit.cover,
                   ),
                 )
               else
@@ -282,7 +282,7 @@ class _StreamViewState extends State<StreamView> {
                 left: 16,
                 right: 16,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Title and connection details
                     Expanded(
@@ -341,7 +341,7 @@ class _StreamViewState extends State<StreamView> {
                         StreamBuilder<LiveModel>(
                           stream: supabaseService.streamLive(_live!.id),
                           builder: (context, snapshot) {
-                            final count = snapshot.data?.current_viewers ?? _live!.current_viewers;
+                            final count = snapshot.data?.currentViewers ?? _live!.currentViewers;
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(

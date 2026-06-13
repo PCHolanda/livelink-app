@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
@@ -137,7 +138,7 @@ class LiveLinkApp extends StatelessWidget {
           secondary: const Color(0xFF06B6D4),
           background: const Color(0xFFF8FAFC),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
@@ -160,7 +161,7 @@ class LiveLinkApp extends StatelessWidget {
           surface: const Color(0xFF1E293B), // Slate 800
         ),
         scaffoldBackgroundColor: const Color(0xFF0F172A),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFF1E293B),
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
