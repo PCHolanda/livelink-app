@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- SEO Meta Tags -->
+  <title>LiveLink - Transmissão ao Vivo Simplificada</title>
+  <meta name="description" content="Assista ou crie transmissões ao vivo de maneira simples e rápida. Compartilhe o link e comece a transmitir na hora sem necessidade de cadastros para espectadores.">
+  <meta name="keywords" content="livelink, streaming, live kit, livekit cloud, supabase, flutter live, webrtc">
+  <meta name="author" content="LiveLink Team">
+
+  <!-- Social Metadata (Open Graph / Facebook) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LiveLink - Transmissão ao Vivo Simplificada">
+  <meta property="og:description" content="Transmitir nunca foi tão simples. Envie o link e comece a receber espectadores em tempo real.">
+  <meta property="og:image" content="assets/livelink_preview.png">
+
+  <!-- Twitter Card Metadata -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LiveLink - Transmissão ao Vivo Simplificada">
+  <meta name="twitter:description" content="Transmitir nunca foi tão simples. Envie o link e comece a receber espectadores.">
+
+  <!-- Favicon and Icons -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <style>
+    body {
+      background-color: #0F172A; /* Slate 900 */
+      color: #F8FAFC; /* Slate 50 */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* Premium Neon Pulse Animation */
+    .icon-pulse {
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(79, 70, 229, 0.4);
+      animation: pulse 2s infinite ease-in-out;
+      margin-bottom: 24px;
+    }
+
+    .icon-pulse svg {
+      width: 44px;
+      height: 44px;
+      fill: white;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #818CF8 0%, #22D3EE 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #94A3B8; /* Slate 400 */
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    /* Spinner */
+    .spinner {
+      margin-top: 32px;
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      border-top-color: #22D3EE;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
+      50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(6, 182, 212, 0.6); }
+      100% { transform: scale(1); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader-container">
+    <div class="icon-pulse">
+      <!-- Live streaming custom SVG icon -->
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3C7.03 3 3 7.03 3 12c0 2.22.81 4.25 2.16 5.84l1.42-1.42C5.64 15.18 5 13.66 5 12c0-3.87 3.13-7 7-7s7 3.13 7 7c0 1.66-.64 3.18-1.58 4.42l1.42 1.42C20.19 16.25 21 14.22 21 12c0-4.97-4.03-9-9-9zm0 4c-2.76 0-5 2.24-5 5 0 1.28.48 2.44 1.28 3.33l1.42-1.42C9.27 13.33 9 12.69 9 12c0-1.66 1.34-3 3-3s3 1.34 3 3c0 .69-.27 1.33-.7 1.91l1.42 1.42C16.52 14.44 17 13.28 17 12c0-2.76-2.24-5-5-5zm0 4c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
+      </svg>
+    </div>
+    <div class="title">LIVELINK</div>
+    <div class="subtitle">Carregando plataforma de transmissão ao vivo...</div>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Flutter Engine Initialization script -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
