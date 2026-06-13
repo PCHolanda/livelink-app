@@ -28,7 +28,11 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release
 
-      # 5. Deploy build/web directory to Vercel Cloud
+      # 5. Copy vercel.json explicitly to build output
+      - name: Copy vercel.json
+        run: cp web/vercel.json build/web/vercel.json
+
+      # 6. Deploy build/web directory to Vercel Cloud
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
         with:
