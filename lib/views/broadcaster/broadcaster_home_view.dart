@@ -210,7 +210,7 @@ class _BroadcasterHomeViewState extends State<BroadcasterHomeView> {
             const Icon(Icons.sensors_rounded, color: Colors.redAccent, size: 28),
             const SizedBox(width: 8),
             Text(
-              'LiveLink Broadcaster',
+              'LiveLink Transmissão',
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
