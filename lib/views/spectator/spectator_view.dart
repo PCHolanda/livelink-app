@@ -22,14 +22,13 @@ class _SpectatorViewState extends State<SpectatorView> {
   bool _isLoading = true;
   bool _isLiveActive = false;
   bool _isMuted = false;
-  bool _hasJoined = false;
 
   StreamSubscription<LiveModel>? _liveSubscription;
 
   @override
   void initState() {
     super.initState();
-    _fetchLiveMetadata();
+    _initSpectatorSession();
   }
 
   @override
@@ -56,7 +55,7 @@ class _SpectatorViewState extends State<SpectatorView> {
     await liveKitService.disconnect();
   }
 
-  Future<void> _fetchLiveMetadata() async {
+  Future<void> _initSpectatorSession() async {
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
     try {
       // 1. Resolve live by slug
@@ -71,10 +70,21 @@ class _SpectatorViewState extends State<SpectatorView> {
       setState(() {
         _live = live;
         _isLiveActive = live.status == 'live';
+      });
+
+      // 2. Insert session inside public.viewers table (DB trigger increments viewer counters)
+      final sessionId = await supabaseService.joinLiveSession(live.id);
+      setState(() {
+        _viewerSessionId = sessionId;
         _isLoading = false;
       });
 
-      // Set up real-time stream subscription to watch status & audience changes
+      // 3. Connect to LiveKit if already streaming
+      if (_isLiveActive) {
+        await _connectLiveKit(live);
+      }
+
+      // 4. Set up real-time stream subscription to watch status & audience changes
       _liveSubscription = supabaseService.streamLive(live.id).listen((updatedLive) {
         if (!mounted) return;
 
@@ -86,53 +96,19 @@ class _SpectatorViewState extends State<SpectatorView> {
           _isLiveActive = isNowLive;
         });
 
-        if (_hasJoined) {
-          // Trigger LiveKit connect/disconnect based on real-time status changes
-          if (!wasLive && isNowLive) {
-            _connectLiveKit(updatedLive);
-          } else if (wasLive && !isNowLive) {
-            // Broadcaster stopped live
-            Provider.of<LiveKitService>(context, listen: false).disconnect();
-          }
+        // Trigger LiveKit connect/disconnect based on real-time status changes
+        if (!wasLive && isNowLive) {
+          _connectLiveKit(updatedLive);
+        } else if (wasLive && !isNowLive) {
+          // Broadcaster stopped live
+          Provider.of<LiveKitService>(context, listen: false).disconnect();
         }
       });
     } catch (e) {
-      debugPrint('Error fetching live metadata: $e');
+      debugPrint('Error initializing spectator session: $e');
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _joinStream() async {
-    if (_live == null) return;
-    
-    setState(() {
-      _isLoading = true;
-    });
-
-    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-    try {
-      // 1. Insert session inside public.viewers table (DB trigger increments viewer counters)
-      final sessionId = await supabaseService.joinLiveSession(_live!.id);
-      setState(() {
-        _viewerSessionId = sessionId;
-        _hasJoined = true;
-        _isLoading = false;
-      });
-
-      // 2. Connect to LiveKit if already streaming
-      if (_isLiveActive) {
-        await _connectLiveKit(_live!);
-      }
-    } catch (e) {
-      debugPrint('Error joining stream: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao entrar na live: $e'), backgroundColor: Colors.redAccent),
-      );
     }
   }
 
@@ -236,6 +212,7 @@ class _SpectatorViewState extends State<SpectatorView> {
       );
     }
 
+    // Try to find the broadcaster's remote video track
     VideoTrack? remoteVideoTrack = liveKitService.remoteVideoTracks.firstOrNull;
 
     return Scaffold(
@@ -258,8 +235,6 @@ class _SpectatorViewState extends State<SpectatorView> {
                 subtitle: 'Esta transmissão foi encerrada pelo apresentador.',
                 color: Colors.grey,
               )
-            else if (!_hasJoined)
-              _buildJoinOverlay(theme)
             else if (_isLiveActive && remoteVideoTrack != null)
               // Streaming video display
               Positioned.fill(
@@ -279,88 +254,87 @@ class _SpectatorViewState extends State<SpectatorView> {
               ),
 
             // 2. Spectator Overlay (Title and Viewer Count)
-            if (_hasJoined)
-              Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _live!.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Assistindo pelo LiveLink',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_isLiveActive) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
-                                SizedBox(width: 4),
-                                Text(
-                                  'AO VIVO',
-                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
+                        Text(
+                          _live!.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                        // Dynamic online viewers count
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Assistindo pelo LiveLink',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isLiveActive) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
+                            color: Colors.redAccent,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
+                          child: const Row(
                             children: [
-                              const Icon(Icons.remove_red_eye_rounded, color: Colors.white70, size: 14),
-                              const SizedBox(width: 4),
+                              Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
+                              SizedBox(width: 4),
                               Text(
-                                '${_live!.currentViewers}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                'AO VIVO',
+                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                       ],
-                    )
-                  ],
-                ),
+                      // Dynamic online viewers count
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.remove_red_eye_rounded, color: Colors.white70, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_live!.currentViewers}',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                ],
               ),
+            ),
 
             // 3. Audio Control Overlay (Bottom Left)
             if (_isLiveActive && remoteVideoTrack != null)
@@ -414,71 +388,6 @@ class _SpectatorViewState extends State<SpectatorView> {
               textAlign: TextAlign.center,
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJoinOverlay(ThemeData theme) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.grey[950],
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Card(
-            color: Colors.white.withOpacity(0.05),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            child: Container(
-              width: 400,
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
-                gradient: LinearGradient(
-                  colors: [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.01)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.play_circle_outline_rounded, color: Colors.redAccent, size: 48),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _live!.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Transmissão ao vivo em tempo real',
-                    style: TextStyle(color: Colors.white60, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Assistir ao Vivo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    onPressed: _joinStream,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );
