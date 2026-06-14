@@ -21,7 +21,7 @@ class _SpectatorViewState extends State<SpectatorView> {
   String? _viewerSessionId;
   bool _isLoading = true;
   bool _isLiveActive = false;
-  bool _isMuted = false;
+  bool _isMuted = true;
 
   StreamSubscription<LiveModel>? _liveSubscription;
 
@@ -133,23 +133,46 @@ class _SpectatorViewState extends State<SpectatorView> {
         token: credentials['token'] as String,
         isPublisher: false,
       );
+
+      _applyMuteState();
+
+      // Listen for new track subscriptions to enforce mute state
+      liveKitService.room?.createListener().on<TrackSubscribedEvent>((event) {
+        if (event.track is AudioTrack) {
+          event.track.mediaStreamTrack.enabled = !_isMuted;
+        }
+      });
     } catch (e) {
       debugPrint('Error connecting LiveKit spectator: $e');
     }
   }
 
-  void _toggleMute() {
+  void _applyMuteState() {
     final liveKitService = Provider.of<LiveKitService>(context, listen: false);
-    setState(() {
-      _isMuted = !_isMuted;
-    });
-    // In LiveKit, we can mute the audio output of the subscriber room or tracks
     if (liveKitService.room != null) {
       for (var participant in liveKitService.room!.remoteParticipants.values) {
         for (var pub in participant.audioTrackPublications) {
           pub.track?.mediaStreamTrack.enabled = !_isMuted;
         }
       }
+    }
+  }
+
+  Future<void> _toggleMute() async {
+    final liveKitService = Provider.of<LiveKitService>(context, listen: false);
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    
+    if (liveKitService.room != null) {
+      if (!_isMuted) {
+        try {
+          await liveKitService.room!.startAudio();
+        } catch (e) {
+          debugPrint('Error starting audio: $e');
+        }
+      }
+      _applyMuteState();
     }
   }
 
