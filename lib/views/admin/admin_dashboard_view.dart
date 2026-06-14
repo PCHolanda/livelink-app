@@ -49,6 +49,14 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
         },
       ),
       ListTile(
+        leading: const Icon(Icons.sensors_rounded),
+        title: const Text('Área do Transmissor'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/broadcaster');
+        },
+      ),
+      ListTile(
         leading: const Icon(Icons.logout_rounded),
         title: const Text('Sair'),
         onTap: () async {
@@ -171,6 +179,13 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                           title: const Text('Gerenciar Usuários'),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           onTap: () => context.push('/admin/users'),
+                        ),
+                        const SizedBox(height: 4),
+                        ListTile(
+                          leading: const Icon(Icons.sensors_rounded),
+                          title: const Text('Área do Transmissor'),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          onTap: () => context.push('/broadcaster'),
                         ),
                         const Divider(),
                         ListTile(

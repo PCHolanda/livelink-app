@@ -77,7 +77,7 @@ class LiveLinkApp extends StatelessWidget {
         if (state.matchedLocation.startsWith('/admin') && !user.isAdmin) {
           return '/broadcaster';
         }
-        if (state.matchedLocation.startsWith('/broadcaster') && !user.isBroadcaster) {
+        if (state.matchedLocation.startsWith('/broadcaster') && !user.isBroadcaster && !user.isAdmin) {
           return '/admin';
         }
 

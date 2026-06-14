@@ -216,6 +216,12 @@ class _BroadcasterHomeViewState extends State<BroadcasterHomeView> {
           ],
         ),
         actions: [
+          if (authService.currentUser?.isAdmin == true)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded),
+              onPressed: () => context.go('/admin'),
+              tooltip: 'Painel Administrativo',
+            ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: () async => await authService.signOut(),

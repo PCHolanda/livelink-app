@@ -546,6 +546,11 @@ class _UserManagementViewState extends State<UserManagementView> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.go('/admin'),
+          tooltip: 'Voltar ao Dashboard',
+        ),
         title: const Text('Gerenciamento de Usuários'),
         actions: [
           ElevatedButton.icon(
