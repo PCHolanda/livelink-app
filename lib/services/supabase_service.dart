@@ -45,9 +45,15 @@ class SupabaseService extends ChangeNotifier {
       );
       if (response.user != null) {
         await _fetchCurrentUserInfo(response.user!.id);
-        if (_currentUser != null && !_currentUser!.active) {
-          await signOut();
-          throw Exception('Esta conta está desativada pelo administrador.');
+        if (_currentUser != null) {
+          if (!_currentUser!.active) {
+            await signOut();
+            throw Exception('Esta conta está desativada pelo administrador.');
+          }
+          if (!_currentUser!.isAccessValid) {
+            await signOut();
+            throw Exception('Seu período de acesso à plataforma expirou ou ainda não iniciou.');
+          }
         }
       }
     } finally {
@@ -77,7 +83,13 @@ class SupabaseService extends ChangeNotifier {
           .maybeSingle();
 
       if (data != null) {
-        _currentUser = UserModel.fromJson(data);
+        final parsedUser = UserModel.fromJson(data);
+        if (!parsedUser.isAccessValid) {
+          _currentUser = null;
+          await signOut();
+        } else {
+          _currentUser = parsedUser;
+        }
       } else {
         _currentUser = null;
       }
@@ -275,6 +287,8 @@ class SupabaseService extends ChangeNotifier {
     required String password,
     required String name,
     required String role,
+    DateTime? accessStart,
+    DateTime? accessEnd,
   }) async {
     final response = await _client.functions.invoke(
       'manage-users',
@@ -285,6 +299,8 @@ class SupabaseService extends ChangeNotifier {
           'password': password,
           'name': name,
           'role': role,
+          'access_start': accessStart?.toUtc().toIso8601String(),
+          'access_end': accessEnd?.toUtc().toIso8601String(),
         }
       },
     );
@@ -301,6 +317,8 @@ class SupabaseService extends ChangeNotifier {
     required String name,
     required String role,
     required bool active,
+    DateTime? accessStart,
+    DateTime? accessEnd,
   }) async {
     final response = await _client.functions.invoke(
       'manage-users',
@@ -312,6 +330,8 @@ class SupabaseService extends ChangeNotifier {
           'name': name,
           'role': role,
           'active': active,
+          'access_start': accessStart?.toUtc().toIso8601String(),
+          'access_end': accessEnd?.toUtc().toIso8601String(),
         }
       },
     );

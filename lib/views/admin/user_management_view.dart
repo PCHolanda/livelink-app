@@ -54,7 +54,25 @@ class _UserManagementViewState extends State<UserManagementView> {
   // API CRUDS
   // ==========================================
 
-  Future<void> _createUser(String name, String email, String password, String role) async {
+  Future<DateTime?> _selectDateTime(BuildContext context, DateTime? initial) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (date == null) return null;
+    
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial ?? DateTime.now()),
+    );
+    if (time == null) return DateTime(date.year, date.month, date.day, 0, 0);
+    
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _createUser(String name, String email, String password, String role, DateTime? accessStart, DateTime? accessEnd) async {
     final service = Provider.of<SupabaseService>(context, listen: false);
     try {
       await service.adminCreateUser(
@@ -62,6 +80,8 @@ class _UserManagementViewState extends State<UserManagementView> {
         password: password,
         name: name,
         role: role,
+        accessStart: accessStart,
+        accessEnd: accessEnd,
       );
       _showSuccessSnackBar('Usuário criado com sucesso!');
       _loadUsers();
@@ -70,7 +90,7 @@ class _UserManagementViewState extends State<UserManagementView> {
     }
   }
 
-  Future<void> _updateUser(String id, String name, String email, String role, bool active) async {
+  Future<void> _updateUser(String id, String name, String email, String role, bool active, DateTime? accessStart, DateTime? accessEnd) async {
     final service = Provider.of<SupabaseService>(context, listen: false);
     try {
       await service.adminUpdateUser(
@@ -79,6 +99,8 @@ class _UserManagementViewState extends State<UserManagementView> {
         name: name,
         role: role,
         active: active,
+        accessStart: accessStart,
+        accessEnd: accessEnd,
       );
       _showSuccessSnackBar('Usuário atualizado com sucesso!');
       _loadUsers();
@@ -131,6 +153,8 @@ class _UserManagementViewState extends State<UserManagementView> {
     final emailCtrl = TextEditingController();
     final passCtrl = TextEditingController();
     String role = 'broadcaster';
+    DateTime? accessStart;
+    DateTime? accessEnd;
 
     showDialog(
       context: context,
@@ -180,6 +204,82 @@ class _UserManagementViewState extends State<UserManagementView> {
                           }
                         },
                       ),
+                      if (role == 'broadcaster') ...[
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Período de Acesso (Opcional)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  accessStart == null 
+                                      ? 'Início' 
+                                      : '${accessStart!.day.toString().padLeft(2, '0')}/${accessStart!.month.toString().padLeft(2, '0')} ${accessStart!.hour.toString().padLeft(2, '0')}:${accessStart!.minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: () async {
+                                  final dt = await _selectDateTime(context, accessStart);
+                                  if (dt != null) {
+                                    setDialogState(() {
+                                      accessStart = dt;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  accessEnd == null 
+                                      ? 'Fim' 
+                                      : '${accessEnd!.day.toString().padLeft(2, '0')}/${accessEnd!.month.toString().padLeft(2, '0')} ${accessEnd!.hour.toString().padLeft(2, '0')}:${accessEnd!.minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: () async {
+                                  final dt = await _selectDateTime(context, accessEnd);
+                                  if (dt != null) {
+                                    setDialogState(() {
+                                      accessEnd = dt;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (accessStart != null || accessEnd != null)
+                          TextButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                accessStart = null;
+                                accessEnd = null;
+                              });
+                            },
+                            child: const Text('Limpar período', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                          ),
+                      ],
                     ],
                   ),
                 ),
@@ -192,7 +292,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                 ElevatedButton(
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
-                      _createUser(nameCtrl.text.trim(), emailCtrl.text.trim(), passCtrl.text, role);
+                      _createUser(nameCtrl.text.trim(), emailCtrl.text.trim(), passCtrl.text, role, accessStart, accessEnd);
                       Navigator.pop(context);
                     }
                   },
@@ -212,6 +312,8 @@ class _UserManagementViewState extends State<UserManagementView> {
     final emailCtrl = TextEditingController(text: user.email);
     String role = user.role;
     bool active = user.active;
+    DateTime? accessStart = user.accessStart;
+    DateTime? accessEnd = user.accessEnd;
 
     showDialog(
       context: context,
@@ -265,6 +367,82 @@ class _UserManagementViewState extends State<UserManagementView> {
                           });
                         },
                       ),
+                      if (role == 'broadcaster') ...[
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Período de Acesso (Opcional)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  accessStart == null 
+                                      ? 'Início' 
+                                      : '${accessStart!.day.toString().padLeft(2, '0')}/${accessStart!.month.toString().padLeft(2, '0')} ${accessStart!.hour.toString().padLeft(2, '0')}:${accessStart!.minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: () async {
+                                  final dt = await _selectDateTime(context, accessStart);
+                                  if (dt != null) {
+                                    setDialogState(() {
+                                      accessStart = dt;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  accessEnd == null 
+                                      ? 'Fim' 
+                                      : '${accessEnd!.day.toString().padLeft(2, '0')}/${accessEnd!.month.toString().padLeft(2, '0')} ${accessEnd!.hour.toString().padLeft(2, '0')}:${accessEnd!.minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: () async {
+                                  final dt = await _selectDateTime(context, accessEnd);
+                                  if (dt != null) {
+                                    setDialogState(() {
+                                      accessEnd = dt;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (accessStart != null || accessEnd != null)
+                          TextButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                accessStart = null;
+                                accessEnd = null;
+                              });
+                            },
+                            child: const Text('Limpar período', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                          ),
+                      ],
                     ],
                   ),
                 ),
@@ -277,7 +455,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                 ElevatedButton(
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
-                      _updateUser(user.id, nameCtrl.text.trim(), emailCtrl.text.trim(), role, active);
+                      _updateUser(user.id, nameCtrl.text.trim(), emailCtrl.text.trim(), role, active, accessStart, accessEnd);
                       Navigator.pop(context);
                     }
                   },
@@ -447,6 +625,7 @@ class _UserManagementViewState extends State<UserManagementView> {
             DataColumn(label: Text('Nome')),
             DataColumn(label: Text('E-mail')),
             DataColumn(label: Text('Perfil')),
+            DataColumn(label: Text('Período de Acesso')),
             DataColumn(label: Text('Status')),
             DataColumn(label: Text('Ações')),
           ],
@@ -456,6 +635,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                 DataCell(Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                 DataCell(Text(user.email)),
                 DataCell(_buildRoleChip(theme, user.role)),
+                DataCell(_buildAccessPeriodText(user)),
                 DataCell(_buildStatusIndicator(user.active)),
                 DataCell(
                   Row(
@@ -503,7 +683,14 @@ class _UserManagementViewState extends State<UserManagementView> {
               ),
             ),
             title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(user.email),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user.email),
+                const SizedBox(height: 4),
+                _buildAccessPeriodTextMobile(user),
+              ],
+            ),
             trailing: _buildRoleChip(theme, user.role),
             children: [
               Padding(
@@ -533,6 +720,63 @@ class _UserManagementViewState extends State<UserManagementView> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAccessPeriodText(UserModel user) {
+    if (user.isAdmin) return const Text('Ilimitado', style: TextStyle(color: Colors.grey, fontSize: 12));
+    if (user.accessStart == null && user.accessEnd == null) {
+      return const Text('Ilimitado', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold));
+    }
+    
+    final startStr = user.accessStart != null 
+        ? '${user.accessStart!.day.toString().padLeft(2, '0')}/${user.accessStart!.month.toString().padLeft(2, '0')} ${user.accessStart!.hour.toString().padLeft(2, '0')}:${user.accessStart!.minute.toString().padLeft(2, '0')}'
+        : 'Imediato';
+    
+    final endStr = user.accessEnd != null 
+        ? '${user.accessEnd!.day.toString().padLeft(2, '0')}/${user.accessEnd!.month.toString().padLeft(2, '0')} ${user.accessEnd!.hour.toString().padLeft(2, '0')}:${user.accessEnd!.minute.toString().padLeft(2, '0')}'
+        : 'Ilimitado';
+        
+    final now = DateTime.now();
+    final isBlocked = (user.accessStart != null && user.accessStart!.isAfter(now)) || 
+                      (user.accessEnd != null && user.accessEnd!.isBefore(now));
+                      
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$startStr a $endStr', style: const TextStyle(fontSize: 11)),
+        if (isBlocked)
+          const Text('Fora do prazo', style: TextStyle(color: Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold))
+        else
+          const Text('Ativo', style: TextStyle(color: Colors.green, fontSize: 9)),
+      ],
+    );
+  }
+
+  Widget _buildAccessPeriodTextMobile(UserModel user) {
+    if (user.isAdmin) return const SizedBox.shrink();
+    if (user.accessStart == null && user.accessEnd == null) {
+      return const Text('Acesso: Ilimitado', style: TextStyle(color: Colors.green, fontSize: 11));
+    }
+    final startStr = user.accessStart != null 
+        ? '${user.accessStart!.day.toString().padLeft(2, '0')}/${user.accessStart!.month.toString().padLeft(2, '0')} ${user.accessStart!.hour.toString().padLeft(2, '0')}:${user.accessStart!.minute.toString().padLeft(2, '0')}'
+        : 'Imediato';
+    final endStr = user.accessEnd != null 
+        ? '${user.accessEnd!.day.toString().padLeft(2, '0')}/${user.accessEnd!.month.toString().padLeft(2, '0')} ${user.accessEnd!.hour.toString().padLeft(2, '0')}:${user.accessEnd!.minute.toString().padLeft(2, '0')}'
+        : 'Ilimitado';
+        
+    final now = DateTime.now();
+    final isBlocked = (user.accessStart != null && user.accessStart!.isAfter(now)) || 
+                      (user.accessEnd != null && user.accessEnd!.isBefore(now));
+                      
+    return Text(
+      'Acesso: $startStr a $endStr${isBlocked ? " (Expirado)" : ""}',
+      style: TextStyle(
+        color: isBlocked ? Colors.redAccent : Colors.grey,
+        fontSize: 11,
+        fontWeight: isBlocked ? FontWeight.bold : FontWeight.normal,
+      ),
     );
   }
 

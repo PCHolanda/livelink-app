@@ -61,14 +61,14 @@ serve(async (req) => {
     const { action, payload } = await req.json()
 
     if (action === 'create') {
-      const { email, password, name, role } = payload
+      const { email, password, name, role, access_start, access_end } = payload
       
       // Create user in auth
       const { data: newAuthUser, error: createError } = await adminSupabase.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        user_metadata: { name, role, active: true }
+        user_metadata: { name, role, active: true, access_start, access_end }
       })
 
       if (createError || !newAuthUser.user) {
@@ -85,12 +85,12 @@ serve(async (req) => {
       )
 
     } else if (action === 'update') {
-      const { id, email, name, role, active } = payload
+      const { id, email, name, role, active, access_start, access_end } = payload
 
       // Update auth details
       const { data: _, error: updateAuthError } = await adminSupabase.auth.admin.updateUserById(id, {
         email,
-        user_metadata: { name, role, active }
+        user_metadata: { name, role, active, access_start, access_end }
       })
 
       if (updateAuthError) {
@@ -100,10 +100,10 @@ serve(async (req) => {
         )
       }
 
-      // Also update public.users directly to sync role, active, name
+      // Also update public.users directly to sync role, active, name, access_start, access_end
       const { error: updateDbError } = await adminSupabase
         .from('users')
-        .update({ name, role, active })
+        .update({ name, role, active, access_start, access_end })
         .eq('id', id)
 
       if (updateDbError) {
