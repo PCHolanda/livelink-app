@@ -89,6 +89,20 @@ class LiveKitService extends ChangeNotifier {
     }
   }
 
+  Future<void> switchCamera() async {
+    if (_room != null && _isPublishing) {
+      final localPart = _room!.localParticipant;
+      final pub = localPart?.videoTrackPublications
+          .where((p) => p.track is LocalVideoTrack)
+          .firstOrNull;
+      final localVideoTrack = pub?.track as LocalVideoTrack?;
+      if (localVideoTrack != null) {
+        await localVideoTrack.switchCamera();
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> toggleMicrophone(bool enabled) async {
     if (_room != null && _isPublishing) {
       await _room?.localParticipant?.setMicrophoneEnabled(enabled);

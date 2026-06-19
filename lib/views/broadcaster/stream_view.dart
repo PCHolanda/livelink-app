@@ -184,6 +184,15 @@ class _StreamViewState extends State<StreamView> {
     liveKitService.toggleCamera(_isCameraOn);
   }
 
+  void _switchCamera() async {
+    final liveKitService = Provider.of<LiveKitService>(context, listen: false);
+    try {
+      await liveKitService.switchCamera();
+    } catch (e) {
+      _showError('Erro ao alternar câmera: $e');
+    }
+  }
+
   void _toggleMic() {
     final liveKitService = Provider.of<LiveKitService>(context, listen: false);
     setState(() {
@@ -402,6 +411,15 @@ class _StreamViewState extends State<StreamView> {
                         onPressed: _toggleCamera,
                         child: Icon(_isCameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded),
                       ),
+                      // Switch Camera
+                      if (_isCameraOn)
+                        FloatingActionButton(
+                          heroTag: 'cam_switch',
+                          backgroundColor: Colors.white24,
+                          foregroundColor: Colors.white,
+                          onPressed: _switchCamera,
+                          child: const Icon(Icons.switch_camera_rounded),
+                        ),
                       // Mic toggle
                       FloatingActionButton(
                         heroTag: 'mic_toggle',
