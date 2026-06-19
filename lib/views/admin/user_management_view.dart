@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/user_model.dart';
-import '../../models/live_model.dart';
 import '../../services/supabase_service.dart';
-
 
 class UserManagementView extends StatefulWidget {
   const UserManagementView({super.key});
@@ -537,205 +535,6 @@ class _UserManagementViewState extends State<UserManagementView> {
     );
   }
 
-  void _openLivesDialog(UserModel user) {
-    final service = Provider.of<SupabaseService>(context, listen: false);
-    final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                child: Icon(Icons.sensors_rounded, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Histórico de Transmissões',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    Text(
-                      user.name,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: isMobile ? size.width * 0.95 : 600,
-            height: size.height * 0.55,
-            child: FutureBuilder<List<LiveModel>>(
-              future: service.fetchLivesByUser(user.id),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Erro ao carregar transmissões: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  );
-                }
-                
-                final lives = snapshot.data ?? [];
-                
-                if (lives.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.sensors_off_rounded, size: 56, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Nenhuma live criada por este usuário.',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Total info bar
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.15)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total de transmissões:',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                          ),
-                          Text(
-                            '${lives.length}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: lives.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final live = lives[index];
-                          
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                            title: Text(
-                              live.title,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.people_alt_rounded, size: 14, color: Colors.grey[600]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Pico: ${live.maxViewers}',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                  ),
-                                  if (live.isLive) ...[
-                                    const SizedBox(width: 12),
-                                    const Icon(Icons.play_circle_fill_rounded, size: 14, color: Colors.green),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Online: ${live.currentViewers}',
-                                      style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            trailing: _buildLiveStatusChip(theme, live.status),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildLiveStatusChip(ThemeData theme, String status) {
-    Color bg;
-    Color fg;
-    String label;
-
-    if (status == 'live') {
-      bg = Colors.green.withOpacity(0.12);
-      fg = Colors.green[700]!;
-      label = 'AO VIVO';
-    } else if (status == 'ended') {
-      bg = Colors.grey.withOpacity(0.12);
-      fg = Colors.grey[700]!;
-      label = 'FINALIZADA';
-    } else {
-      bg = Colors.amber.withOpacity(0.12);
-      fg = Colors.amber[800]!;
-      label = 'OCIOSA';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: fg.withOpacity(0.2)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: fg,
-          fontSize: 9,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-
   // ==========================================
   // VIEW BUILDERS
   // ==========================================
@@ -849,11 +648,6 @@ class _UserManagementViewState extends State<UserManagementView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.sensors_rounded),
-                        tooltip: 'Visualizar Lives',
-                        onPressed: () => _openLivesDialog(user),
-                      ),
-                      IconButton(
                         icon: const Icon(Icons.edit_outlined),
                         tooltip: 'Editar',
                         onPressed: () => _openEditDialog(user),
@@ -907,16 +701,9 @@ class _UserManagementViewState extends State<UserManagementView> {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  alignment: WrapAlignment.spaceEvenly,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    TextButton.icon(
-                      onPressed: () => _openLivesDialog(user),
-                      icon: const Icon(Icons.sensors_rounded, size: 18),
-                      label: const Text('Lives'),
-                    ),
                     TextButton.icon(
                       onPressed: () => _openEditDialog(user),
                       icon: const Icon(Icons.edit_outlined, size: 18),
@@ -925,7 +712,7 @@ class _UserManagementViewState extends State<UserManagementView> {
                     TextButton.icon(
                       onPressed: () => _openResetPasswordDialog(user),
                       icon: const Icon(Icons.lock_reset_rounded, size: 18),
-                      label: const Text('Senha'),
+                      label: const Text('Resetar Senha'),
                     ),
                     TextButton.icon(
                       onPressed: () => _confirmDelete(user),
