@@ -97,8 +97,37 @@ class LiveKitService extends ChangeNotifier {
           .firstOrNull;
       final localVideoTrack = pub?.track as LocalVideoTrack?;
       if (localVideoTrack != null) {
-        await localVideoTrack.switchCamera();
-        notifyListeners();
+        try {
+          final devices = await Hardware.instance.enumerateDevices();
+          final videoInputs = devices.where((device) => device.kind == 'videoinput').toList();
+          if (videoInputs.length > 1) {
+            String? currentDeviceId;
+            try {
+              currentDeviceId = _room!.selectedVideoInputDeviceId;
+            } catch (_) {
+              // Ignore if getter is not available
+            }
+
+            int nextIndex = 0;
+            if (currentDeviceId != null && currentDeviceId.isNotEmpty) {
+              int currentIndex = videoInputs.indexWhere((d) => d.deviceId == currentDeviceId);
+              if (currentIndex >= 0) {
+                nextIndex = (currentIndex + 1) % videoInputs.length;
+              } else {
+                nextIndex = 1;
+              }
+            } else {
+              nextIndex = 1;
+            }
+
+            final nextDevice = videoInputs[nextIndex];
+            await localVideoTrack.switchCamera(nextDevice.deviceId);
+            notifyListeners();
+          }
+        } catch (e) {
+          debugPrint('Error switching camera: $e');
+          rethrow;
+        }
       }
     }
   }
