@@ -153,7 +153,7 @@ class _SpectatorViewState extends State<SpectatorView> {
     if (liveKitService.room != null) {
       for (var participant in liveKitService.room!.remoteParticipants.values) {
         for (var pub in participant.audioTrackPublications) {
-          pub.track?.mediaStreamTrack.enabled = !_isMuted;
+          pub.track?.mediaStreamTrack?.enabled = !_isMuted;
         }
       }
     }
