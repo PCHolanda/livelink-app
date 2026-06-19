@@ -45,17 +45,15 @@ class SupabaseService extends ChangeNotifier {
       );
       if (response.user != null) {
         await _fetchCurrentUserInfo(response.user!.id);
-        if (_currentUser == null) {
-          await signOut();
-          throw Exception('Perfil de usuário não encontrado. Entre em contato com o administrador.');
-        }
-        if (!_currentUser!.active) {
-          await signOut();
-          throw Exception('Esta conta está desativada pelo administrador.');
-        }
-        if (!_currentUser!.isAccessValid) {
-          await signOut();
-          throw Exception('Seu período de acesso à plataforma expirou. Entre em contato com o administrador para renovação.');
+        if (_currentUser != null) {
+          if (!_currentUser!.active) {
+            await signOut();
+            throw Exception('Esta conta está desativada pelo administrador.');
+          }
+          if (!_currentUser!.isAccessValid) {
+            await signOut();
+            throw Exception('Seu período de acesso à plataforma expirou ou ainda não iniciou.');
+          }
         }
       }
     } finally {
@@ -94,18 +92,12 @@ class SupabaseService extends ChangeNotifier {
         }
       } else {
         _currentUser = null;
-        // Se a conta existe no Auth mas foi deletada do banco de dados public.users,
-        // força o logout para limpar a sessão local e evitar travamentos na inicialização.
-        if (_client.auth.currentUser != null) {
-          await signOut();
-        }
       }
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching user info: $e');
     }
   }
-
 
   // ==========================================
   // LIVES MANAGEMENT (BROADCASTER & VIEWER)
@@ -289,7 +281,6 @@ class SupabaseService extends ChangeNotifier {
 
     return (response as List).map((json) => LiveModel.fromJson(json)).toList();
   }
-
 
   Future<List<Map<String, dynamic>>> getAuditLogs() async {
     if (_currentUser == null || !_currentUser!.isAdmin) {

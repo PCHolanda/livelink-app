@@ -139,10 +139,9 @@ class _SpectatorViewState extends State<SpectatorView> {
       // Listen for new track subscriptions to enforce mute state
       liveKitService.room?.createListener().on<TrackSubscribedEvent>((event) {
         if (event.track is AudioTrack) {
-          event.track.mediaStreamTrack?.enabled = !_isMuted;
+          event.track.mediaStreamTrack.enabled = !_isMuted;
         }
       });
-
     } catch (e) {
       debugPrint('Error connecting LiveKit spectator: $e');
     }
@@ -153,7 +152,7 @@ class _SpectatorViewState extends State<SpectatorView> {
     if (liveKitService.room != null) {
       for (var participant in liveKitService.room!.remoteParticipants.values) {
         for (var pub in participant.audioTrackPublications) {
-          pub.track?.mediaStreamTrack?.enabled = !_isMuted;
+          pub.track?.mediaStreamTrack.enabled = !_isMuted;
         }
       }
     }
